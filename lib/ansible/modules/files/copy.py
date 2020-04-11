@@ -538,10 +538,7 @@ def main():
     remote_src = module.params['remote_src']
     checksum = module.params['checksum']
 
-    if not os.path.exists(b_src):
-        module.fail_json(msg="Source %s not found" % (src))
-    if not os.access(b_src, os.R_OK):
-        module.fail_json(msg="Source %s not readable" % (src))
+    check_os_path_os_access(b_src, module, src)
 
     # Preserve is usually handled in the action plugin but mode + remote_src has to be done on the
     # remote host
@@ -575,27 +572,7 @@ def main():
         )
 
     # Special handling for recursive copy - create intermediate dirs
-    if dest.endswith(os.sep):
-        if _original_basename:
-            dest = os.path.join(dest, _original_basename)
-        b_dest = to_bytes(dest, errors='surrogate_or_strict')
-        dirname = os.path.dirname(dest)
-        b_dirname = to_bytes(dirname, errors='surrogate_or_strict')
-        if not os.path.exists(b_dirname):
-            try:
-                (pre_existing_dir, new_directory_list) = split_pre_existing_dir(dirname)
-            except AnsibleModuleError as e:
-                e.result['msg'] += ' Could not copy to {0}'.format(dest)
-                module.fail_json(**e.results)
-
-            os.makedirs(b_dirname)
-            directory_args = module.load_file_common_arguments(module.params)
-            directory_mode = module.params["directory_mode"]
-            if directory_mode is not None:
-                directory_args['mode'] = directory_mode
-            else:
-                directory_args['mode'] = None
-            adjust_recursive_directory_permissions(pre_existing_dir, new_directory_list, module, directory_args, changed)
+    b_dest, dest = create_intermediate_dirs(dest, _original_basename, module, changed)
 
     if os.path.isdir(b_dest):
         basename = os.path.basename(src)
@@ -786,6 +763,36 @@ def main():
         res_args['changed'] = module.set_fs_attributes_if_different(file_args, res_args['changed'])
 
     module.exit_json(**res_args)
+
+def create_intermediate_dirs(dest, _original_basename, module, changed):
+    if dest.endswith(os.sep):
+        if _original_basename:
+            dest = os.path.join(dest, _original_basename)
+        b_dest = to_bytes(dest, errors='surrogate_or_strict')
+        dirname = os.path.dirname(dest)
+        b_dirname = to_bytes(dirname, errors='surrogate_or_strict')
+        if not os.path.exists(b_dirname):
+            try:
+                (pre_existing_dir, new_directory_list) = split_pre_existing_dir(dirname)
+            except AnsibleModuleError as e:
+                e.result['msg'] += ' Could not copy to {0}'.format(dest)
+                module.fail_json(**e.results)
+
+            os.makedirs(b_dirname)
+            directory_args = module.load_file_common_arguments(module.params)
+            directory_mode = module.params["directory_mode"]
+            if directory_mode is not None:
+                directory_args['mode'] = directory_mode
+            else:
+                directory_args['mode'] = None
+            adjust_recursive_directory_permissions(pre_existing_dir, new_directory_list, module, directory_args, changed)
+    return b_dest, dest
+
+def check_os_path_os_access(b_src, module, src):
+    if not os.path.exists(b_src):
+        module.fail_json(msg="Source %s not found" % (src))
+    if not os.access(b_src, os.R_OK):
+        module.fail_json(msg="Source %s not readable" % (src))
 
 
 if __name__ == '__main__':

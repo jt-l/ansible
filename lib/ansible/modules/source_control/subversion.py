@@ -246,18 +246,7 @@ def main():
         supports_check_mode=True,
     )
 
-    dest = module.params['dest']
-    repo = module.params['repo']
-    revision = module.params['revision']
-    force = module.params['force']
-    username = module.params['username']
-    password = module.params['password']
-    svn_path = module.params['executable'] or module.get_bin_path('svn', True)
-    export = module.params['export']
-    switch = module.params['switch']
-    checkout = module.params['checkout']
-    update = module.params['update']
-    in_place = module.params['in_place']
+    dest, checkout, update, export, repo, revision, username, password, svn_path, force, switch, in_place = newmethod429(module)
 
     # We screenscrape a huge amount of svn commands so use C locale anytime we
     # call run_command()
@@ -321,6 +310,21 @@ def main():
         after = svn.get_revision()
         changed = files_changed or local_mods
         module.exit_json(changed=changed, before=before, after=after)
+
+def newmethod429(module):
+    dest = module.params['dest']
+    repo = module.params['repo']
+    revision = module.params['revision']
+    force = module.params['force']
+    username = module.params['username']
+    password = module.params['password']
+    svn_path = module.params['executable'] or module.get_bin_path('svn', True)
+    export = module.params['export']
+    switch = module.params['switch']
+    checkout = module.params['checkout']
+    update = module.params['update']
+    in_place = module.params['in_place']
+    return dest, checkout, update, export, repo, revision, username, password, svn_path, force, switch, in_place
 
 
 if __name__ == '__main__':

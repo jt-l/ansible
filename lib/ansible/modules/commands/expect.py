@@ -147,22 +147,9 @@ def main():
         module.fail_json(msg=missing_required_lib("pexpect"),
                          exception=PEXPECT_IMP_ERR)
 
-    chdir = module.params['chdir']
-    args = module.params['command']
-    creates = module.params['creates']
-    removes = module.params['removes']
-    responses = module.params['responses']
-    timeout = module.params['timeout']
-    echo = module.params['echo']
+    responses, args, chdir, creates, removes, timeout, echo = get_module_params(module)
 
-    events = dict()
-    for key, value in responses.items():
-        if isinstance(value, list):
-            response = response_closure(module, key, value)
-        else:
-            response = u'%s\n' % to_text(value).rstrip(u'\n')
-
-        events[to_text(key)] = response
+    events = retrieve_events(responses, module)
 
     if args.strip() == '':
         module.fail_json(rc=256, msg="no command given")
@@ -240,6 +227,27 @@ def main():
         module.fail_json(msg='non-zero return code', **result)
 
     module.exit_json(**result)
+
+def retrieve_events(responses, module):
+  events = dict()
+  for key, value in responses.items():
+      if isinstance(value, list):
+          response = response_closure(module, key, value)
+      else:
+          response = u'%s\n' % to_text(value).rstrip(u'\n')
+
+      events[to_text(key)] = response
+  return events
+
+def get_module_params(module):
+  chdir = module.params['chdir']
+  args = module.params['command']
+  creates = module.params['creates']
+  removes = module.params['removes']
+  responses = module.params['responses']
+  timeout = module.params['timeout']
+  echo = module.params['echo']
+  return responses, args, chdir, creates, removes, timeout, echo
 
 
 if __name__ == '__main__':
